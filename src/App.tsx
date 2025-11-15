@@ -21,6 +21,11 @@ const App: React.FC = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    // ステップ8: 輪郭線データを保存する変数
+    let outlineData: Uint8ClampedArray | null = null;
+    let outlineWidth = 0;
+    let outlineHeight = 0;
+
     // ステップ5: 星の形を作成
     const createStarPath = (size: number): Path2D => {
       const path = new Path2D();
@@ -131,10 +136,10 @@ const App: React.FC = () => {
       const h = tempCanvas.height;
 
       // ノイズ除去: モルフォロジー処理（クロージング = 膨張 → 収縮）
-      const threshold = 128;
-      const kernelSize = 2; // カーネルサイズ（5→2に軽量化）
+      const threshold = 180; // 128 → 180 に上げてノイズを除去
+      const kernelSize = 2; // カーネルサイズ（軽量化）
 
-      // 二値化
+      // 二値化（閾値を上げて小さいノイズを切り捨て）
       const binary = new Uint8ClampedArray(w * h);
       for (let i = 0; i < w * h; i++) {
         binary[i] = data[i * 4] > threshold ? 1 : 0;
@@ -184,36 +189,6 @@ const App: React.FC = () => {
         data[i * 4 + 2] = val;
       }
 
-      // ステップ4: Bounding Boxの計算
-      let minX = w;
-      let minY = h;
-      let maxX = 0;
-      let maxY = 0;
-
-      // 人体が存在する最小の矩形を求める
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = (y * w + x) * 4;
-          if (data[i] > 128) {
-            // 人体ピクセル発見
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-
-      // Canvas座標系にスケール
-      const scaleX = canvas.width / w;
-      const scaleY = canvas.height / h;
-      const boundingBox = {
-        x1: minX * scaleX,
-        y1: minY * scaleY,
-        x2: maxX * scaleX,
-        y2: maxY * scaleY,
-      };
-
       // 輪郭線を抽出（エッジ検出）
       const outline = new Uint8ClampedArray(data.length);
       const lineWidth = 3; // 線の太さ
@@ -250,6 +225,11 @@ const App: React.FC = () => {
         }
       }
 
+      // ステップ8: 輪郭線データを保存
+      outlineData = outline;
+      outlineWidth = w;
+      outlineHeight = h;
+
       // 黒背景
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -259,20 +239,26 @@ const App: React.FC = () => {
       tempCtx.putImageData(outlineImageData, 0, 0);
       ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
-      // デバッグ: Bounding Boxを赤い枠で表示
-      if (minX < w && minY < h) {
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(boundingBox.x1, boundingBox.y1, boundingBox.x2 - boundingBox.x1, boundingBox.y2 - boundingBox.y1);
-      }
+      // ステップ9: 輪郭線との衝突判定
+      let isColliding = false;
 
-      // ステップ7: 衝突判定
-      const isColliding = minX < w && minY < h && star.x >= boundingBox.x1 && star.x <= boundingBox.x2 && star.y >= boundingBox.y1 && star.y <= boundingBox.y2;
+      if (outlineData && outlineWidth > 0 && outlineHeight > 0) {
+        // 星の座標を輪郭線データの座標に変換
+        const outlineX = Math.floor((star.x / canvas.width) * outlineWidth);
+        const outlineY = Math.floor((star.y / canvas.height) * outlineHeight);
+
+        // 範囲チェック
+        if (outlineX >= 0 && outlineX < outlineWidth && outlineY >= 0 && outlineY < outlineHeight) {
+          // その位置が輪郭線かどうかチェック
+          const index = (outlineY * outlineWidth + outlineX) * 4;
+          isColliding = outlineData[index] > 0; // 輪郭線は白（255）
+        }
+      }
 
       if (isColliding && star.velocityY > 0) {
         // バウンド（跳ね返り）
         star.velocityY = -Math.abs(star.velocityY); // 上向きに反転
-        console.log('💥 衝突！バウンド');
+        console.log('💥 輪郭線に衝突！バウンド');
       }
 
       // ステップ6: 星を動かす
