@@ -21,6 +21,47 @@ const App: React.FC = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    // ステップ5: 星の形を作成
+    const createStarPath = (size: number): Path2D => {
+      const path = new Path2D();
+      const spikes = 5;
+      const outerRadius = size;
+      const innerRadius = size / 2;
+
+      for (let i = 0; i < spikes * 2; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (Math.PI / spikes) * i - Math.PI / 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+
+        if (i === 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
+      }
+      path.closePath();
+      return path;
+    };
+
+    const starPath = createStarPath(20); // 星のサイズ20px
+
+    // ステップ6: 星の状態管理
+    const star = {
+      x: 0,
+      y: 0,
+      velocityY: 3, // 落下速度（3px/フレーム）
+    };
+
+    // 星の初期位置を設定
+    const resetStar = () => {
+      if (!canvasRef.current) return;
+      star.x = Math.random() * canvasRef.current.width;
+      star.y = -50; // 画面上部の外側から開始
+    };
+
+    resetStar();
+
     const init = async () => {
       // ステップ1: カメラのセットアップ
       if (!videoRef.current) return;
@@ -91,7 +132,7 @@ const App: React.FC = () => {
 
       // ノイズ除去: モルフォロジー処理（クロージング = 膨張 → 収縮）
       const threshold = 128;
-      const kernelSize = 5; // カーネルサイズ（大きいほど強力）
+      const kernelSize = 2; // カーネルサイズ（5→2に軽量化）
 
       // 二値化
       const binary = new Uint8ClampedArray(w * h);
@@ -223,8 +264,38 @@ const App: React.FC = () => {
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 2;
         ctx.strokeRect(boundingBox.x1, boundingBox.y1, boundingBox.x2 - boundingBox.x1, boundingBox.y2 - boundingBox.y1);
-        console.log('📦 Bounding Box:', boundingBox);
       }
+
+      // ステップ7: 衝突判定
+      const isColliding = minX < w && minY < h && star.x >= boundingBox.x1 && star.x <= boundingBox.x2 && star.y >= boundingBox.y1 && star.y <= boundingBox.y2;
+
+      if (isColliding && star.velocityY > 0) {
+        // バウンド（跳ね返り）
+        star.velocityY = -Math.abs(star.velocityY); // 上向きに反転
+        console.log('💥 衝突！バウンド');
+      }
+
+      // ステップ6: 星を動かす
+      star.y += star.velocityY;
+
+      // 画面下に到達したら上に戻す
+      if (star.y > canvas.height + 50) {
+        resetStar();
+        star.velocityY = Math.abs(star.velocityY); // 下向きに戻す
+      }
+
+      // 画面上に行きすぎたら上に戻す
+      if (star.y < -100) {
+        resetStar();
+        star.velocityY = Math.abs(star.velocityY); // 下向きに戻す
+      }
+
+      // 星を描画
+      ctx.save();
+      ctx.translate(star.x, star.y);
+      ctx.fillStyle = 'yellow';
+      ctx.fill(starPath);
+      ctx.restore();
     }
 
     async function detect() {
