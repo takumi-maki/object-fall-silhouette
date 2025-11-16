@@ -58,6 +58,7 @@ const App: React.FC = () => {
       velocityX: number;
       velocityY: number;
       color: string;
+      size: number;
     }
 
     const stars: Star[] = [];
@@ -94,13 +95,14 @@ const App: React.FC = () => {
 
     // 星の初期位置を設定
     const createStar = (): Star => {
-      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0, color: colorCycle[0] };
+      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0, color: colorCycle[0], size: 35 };
       return {
         x: Math.random() * canvasRef.current.width,
         y: -50 - Math.random() * 500, // ランダムな高さから開始
         velocityX: 0, // 横方向の初速度0
         velocityY: 0, // 縦方向の初速度0（重力で加速）
         color: colorCycle[0], // 初期色は黄色
+        size: 35, // 初期サイズ35px（大きめ）
       };
     };
 
@@ -308,6 +310,8 @@ const App: React.FC = () => {
           star.velocityX = (Math.random() - 0.5) * 4;
           // 色相環に沿って次の色に変更
           star.color = getNextColor(star.color);
+          // サイズを小さくする（最小10px）
+          star.size = Math.max(star.size - 3, 10);
         }
 
         // 重力を適用
@@ -324,6 +328,7 @@ const App: React.FC = () => {
           star.velocityX = 0;
           star.velocityY = 0;
           star.color = colorCycle[0]; // 色をリセット（黄色）
+          star.size = 35; // サイズをリセット（大きく）
         }
 
         // 画面上に行きすぎたら上に戻す
@@ -333,6 +338,7 @@ const App: React.FC = () => {
           star.velocityX = 0;
           star.velocityY = 0;
           star.color = colorCycle[0]; // 色をリセット（黄色）
+          star.size = 35; // サイズをリセット（大きく）
         }
 
         // 画面左右に出たら戻す
@@ -342,11 +348,13 @@ const App: React.FC = () => {
           star.velocityX = 0;
           star.velocityY = 0;
           star.color = colorCycle[0]; // 色をリセット（黄色）
+          star.size = 35; // サイズをリセット（大きく）
         }
 
-        // 星を描画
+        // 星を描画（サイズに応じてスケール）
         ctx.save();
         ctx.translate(star.x, star.y);
+        ctx.scale(star.size / 20, star.size / 20); // 基準サイズ20pxからスケール
         ctx.fillStyle = star.color;
         ctx.fill(starPath);
         ctx.restore();
