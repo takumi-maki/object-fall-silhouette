@@ -59,6 +59,8 @@ const App: React.FC = () => {
       velocityY: number;
       color: string;
       size: number;
+      rotation: number; // 回転角度
+      rotationSpeed: number; // 回転速度
     }
 
     const stars: Star[] = [];
@@ -95,7 +97,7 @@ const App: React.FC = () => {
 
     // 星の初期位置を設定
     const createStar = (): Star => {
-      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0, color: colorCycle[0], size: 35 };
+      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0, color: colorCycle[0], size: 35, rotation: 0, rotationSpeed: 0.05 };
       return {
         x: Math.random() * canvasRef.current.width,
         y: -50 - Math.random() * 500, // ランダムな高さから開始
@@ -103,6 +105,8 @@ const App: React.FC = () => {
         velocityY: 0, // 縦方向の初速度0（重力で加速）
         color: colorCycle[0], // 初期色は黄色
         size: 35, // 初期サイズ35px（大きめ）
+        rotation: Math.random() * Math.PI * 2, // ランダムな初期角度
+        rotationSpeed: (Math.random() - 0.5) * 0.1, // ランダムな回転速度
       };
     };
 
@@ -351,9 +355,13 @@ const App: React.FC = () => {
           star.size = 35; // サイズをリセット（大きく）
         }
 
-        // 星を描画（サイズに応じてスケール）
+        // 回転を更新
+        star.rotation += star.rotationSpeed;
+
+        // 星を描画（サイズと回転を適用）
         ctx.save();
         ctx.translate(star.x, star.y);
+        ctx.rotate(star.rotation); // 回転を適用
         ctx.scale(star.size / 20, star.size / 20); // 基準サイズ20pxからスケール
         ctx.fillStyle = star.color;
         ctx.fill(starPath);
