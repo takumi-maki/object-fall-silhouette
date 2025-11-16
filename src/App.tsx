@@ -245,9 +245,11 @@ const App: React.FC = () => {
       outlineWidth = w;
       outlineHeight = h;
 
-      // 黒背景
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // カメラ映像を背景として描画
+      const video = videoRef.current;
+      if (video) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
 
       // 輪郭線を描画
       const outlineImageData = new ImageData(outline, w, h);
