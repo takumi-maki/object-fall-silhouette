@@ -51,21 +51,36 @@ const App: React.FC = () => {
 
     const starPath = createStarPath(20); // 星のサイズ20px
 
-    // ステップ6: 星の状態管理
-    const star = {
-      x: 0,
-      y: 0,
-      velocityY: 3, // 落下速度（3px/フレーム）
-    };
+    // 星の数を増やす: 複数の星を管理
+    interface Star {
+      x: number;
+      y: number;
+      velocityX: number;
+      velocityY: number;
+    }
+
+    const stars: Star[] = [];
+    const STAR_COUNT = 200; // 50 → 200 に増やす
+
+    // 重力定数
+    const GRAVITY = 0.3; // 重力加速度
+    const BOUNCE_VELOCITY = -10; // 跳ね返り時の初速度（上向き）
 
     // 星の初期位置を設定
-    const resetStar = () => {
-      if (!canvasRef.current) return;
-      star.x = Math.random() * canvasRef.current.width;
-      star.y = -50; // 画面上部の外側から開始
+    const createStar = (): Star => {
+      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0 };
+      return {
+        x: Math.random() * canvasRef.current.width,
+        y: -50 - Math.random() * 500, // ランダムな高さから開始
+        velocityX: 0, // 横方向の初速度0
+        velocityY: 0, // 縦方向の初速度0（重力で加速）
+      };
     };
 
-    resetStar();
+    // 200個の星を初期化
+    for (let i = 0; i < STAR_COUNT; i++) {
+      stars.push(createStar());
+    }
 
     const init = async () => {
       // ステップ1: カメラのセットアップ
@@ -239,49 +254,69 @@ const App: React.FC = () => {
       tempCtx.putImageData(outlineImageData, 0, 0);
       ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
 
-      // ステップ9: 輪郭線との衝突判定
-      let isColliding = false;
+      // 複数の星を処理
+      stars.forEach((star) => {
+        // ステップ9: 輪郭線との衝突判定
+        let isColliding = false;
 
-      if (outlineData && outlineWidth > 0 && outlineHeight > 0) {
-        // 星の座標を輪郭線データの座標に変換
-        const outlineX = Math.floor((star.x / canvas.width) * outlineWidth);
-        const outlineY = Math.floor((star.y / canvas.height) * outlineHeight);
+        if (outlineData && outlineWidth > 0 && outlineHeight > 0) {
+          // 星の座標を輪郭線データの座標に変換
+          const outlineX = Math.floor((star.x / canvas.width) * outlineWidth);
+          const outlineY = Math.floor((star.y / canvas.height) * outlineHeight);
 
-        // 範囲チェック
-        if (outlineX >= 0 && outlineX < outlineWidth && outlineY >= 0 && outlineY < outlineHeight) {
-          // その位置が輪郭線かどうかチェック
-          const index = (outlineY * outlineWidth + outlineX) * 4;
-          isColliding = outlineData[index] > 0; // 輪郭線は白（255）
+          // 範囲チェック
+          if (outlineX >= 0 && outlineX < outlineWidth && outlineY >= 0 && outlineY < outlineHeight) {
+            // その位置が輪郭線かどうかチェック
+            const index = (outlineY * outlineWidth + outlineX) * 4;
+            isColliding = outlineData[index] > 0; // 輪郭線は白（255）
+          }
         }
-      }
 
-      if (isColliding && star.velocityY > 0) {
-        // バウンド（跳ね返り）
-        star.velocityY = -Math.abs(star.velocityY); // 上向きに反転
-        console.log('💥 輪郭線に衝突！バウンド');
-      }
+        if (isColliding && star.velocityY > 0) {
+          // バウンド（跳ね返り）: 上向きの初速度を与える
+          star.velocityY = BOUNCE_VELOCITY;
+          // 横方向にもランダムな速度を与える（-3 〜 3）
+          star.velocityX = (Math.random() - 0.5) * 6;
+        }
 
-      // ステップ6: 星を動かす
-      star.y += star.velocityY;
+        // 重力を適用
+        star.velocityY += GRAVITY;
 
-      // 画面下に到達したら上に戻す
-      if (star.y > canvas.height + 50) {
-        resetStar();
-        star.velocityY = Math.abs(star.velocityY); // 下向きに戻す
-      }
+        // ステップ6: 星を動かす
+        star.x += star.velocityX;
+        star.y += star.velocityY;
 
-      // 画面上に行きすぎたら上に戻す
-      if (star.y < -100) {
-        resetStar();
-        star.velocityY = Math.abs(star.velocityY); // 下向きに戻す
-      }
+        // 画面下に到達したら上に戻す
+        if (star.y > canvas.height + 50) {
+          star.x = Math.random() * canvas.width;
+          star.y = -50;
+          star.velocityX = 0;
+          star.velocityY = 0;
+        }
 
-      // 星を描画
-      ctx.save();
-      ctx.translate(star.x, star.y);
-      ctx.fillStyle = 'yellow';
-      ctx.fill(starPath);
-      ctx.restore();
+        // 画面上に行きすぎたら上に戻す
+        if (star.y < -100) {
+          star.x = Math.random() * canvas.width;
+          star.y = -50;
+          star.velocityX = 0;
+          star.velocityY = 0;
+        }
+
+        // 画面左右に出たら戻す
+        if (star.x < -50 || star.x > canvas.width + 50) {
+          star.x = Math.random() * canvas.width;
+          star.y = -50;
+          star.velocityX = 0;
+          star.velocityY = 0;
+        }
+
+        // 星を描画
+        ctx.save();
+        ctx.translate(star.x, star.y);
+        ctx.fillStyle = 'yellow';
+        ctx.fill(starPath);
+        ctx.restore();
+      });
     }
 
     async function detect() {
