@@ -57,27 +57,54 @@ const App: React.FC = () => {
       y: number;
       velocityX: number;
       velocityY: number;
+      color: string;
     }
 
     const stars: Star[] = [];
-    const STAR_COUNT = 200; // 50 → 200 に増やす
+    const STAR_COUNT = 100; // 200 → 100 に減らす
 
     // 重力定数
-    const GRAVITY = 0.3; // 重力加速度
-    const BOUNCE_VELOCITY = -10; // 跳ね返り時の初速度（上向き）
+    const GRAVITY = 0.2; // 重力加速度（0.3 → 0.2 に減速）
+    const BOUNCE_VELOCITY = -8; // 跳ね返り時の初速度（-10 → -8 に減速）
+
+    // 色相環に沿った色の配列（12色）
+    const colorCycle = [
+      '#FFFF00', // 黄
+      '#FFD700', // 金
+      '#FFA500', // オレンジ
+      '#FF4500', // 赤オレンジ
+      '#FF0000', // 赤
+      '#FF1493', // ピンク
+      '#FF00FF', // マゼンタ
+      '#9370DB', // 紫
+      '#0000FF', // 青
+      '#00CED1', // シアン
+      '#00FF00', // 緑
+      '#7FFF00', // 黄緑
+    ];
+
+    // 次の色を取得
+    const getNextColor = (currentColor: string): string => {
+      const currentIndex = colorCycle.indexOf(currentColor);
+      if (currentIndex === -1 || currentIndex === colorCycle.length - 1) {
+        return colorCycle[0]; // 見つからないか最後の色なら最初に戻る
+      }
+      return colorCycle[currentIndex + 1];
+    };
 
     // 星の初期位置を設定
     const createStar = (): Star => {
-      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0 };
+      if (!canvasRef.current) return { x: 0, y: 0, velocityX: 0, velocityY: 0, color: colorCycle[0] };
       return {
         x: Math.random() * canvasRef.current.width,
         y: -50 - Math.random() * 500, // ランダムな高さから開始
         velocityX: 0, // 横方向の初速度0
         velocityY: 0, // 縦方向の初速度0（重力で加速）
+        color: colorCycle[0], // 初期色は黄色
       };
     };
 
-    // 200個の星を初期化
+    // 100個の星を初期化
     for (let i = 0; i < STAR_COUNT; i++) {
       stars.push(createStar());
     }
@@ -277,8 +304,10 @@ const App: React.FC = () => {
         if (isColliding && star.velocityY > 0) {
           // バウンド（跳ね返り）: 上向きの初速度を与える
           star.velocityY = BOUNCE_VELOCITY;
-          // 横方向にもランダムな速度を与える（-3 〜 3）
-          star.velocityX = (Math.random() - 0.5) * 6;
+          // 横方向にもランダムな速度を与える（-2 〜 2）
+          star.velocityX = (Math.random() - 0.5) * 4;
+          // 色相環に沿って次の色に変更
+          star.color = getNextColor(star.color);
         }
 
         // 重力を適用
@@ -294,6 +323,7 @@ const App: React.FC = () => {
           star.y = -50;
           star.velocityX = 0;
           star.velocityY = 0;
+          star.color = colorCycle[0]; // 色をリセット（黄色）
         }
 
         // 画面上に行きすぎたら上に戻す
@@ -302,6 +332,7 @@ const App: React.FC = () => {
           star.y = -50;
           star.velocityX = 0;
           star.velocityY = 0;
+          star.color = colorCycle[0]; // 色をリセット（黄色）
         }
 
         // 画面左右に出たら戻す
@@ -310,12 +341,13 @@ const App: React.FC = () => {
           star.y = -50;
           star.velocityX = 0;
           star.velocityY = 0;
+          star.color = colorCycle[0]; // 色をリセット（黄色）
         }
 
         // 星を描画
         ctx.save();
         ctx.translate(star.x, star.y);
-        ctx.fillStyle = 'yellow';
+        ctx.fillStyle = star.color;
         ctx.fill(starPath);
         ctx.restore();
       });
