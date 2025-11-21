@@ -21,8 +21,10 @@ const App: React.FC = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // ステップ8: 輪郭線データを保存する変数
-    let outlineData: Uint8ClampedArray | null = null;
+    // ステップ8: 輪郭線データを保存する変数（3層）
+    let outlineDataOuter: Uint8ClampedArray | null = null; // 外側
+    let outlineDataMiddle: Uint8ClampedArray | null = null; // 中央
+    let outlineDataInner: Uint8ClampedArray | null = null; // 内側
     let outlineWidth = 0;
     let outlineHeight = 0;
 
@@ -237,44 +239,56 @@ const App: React.FC = () => {
         data[i * 4 + 2] = val;
       }
 
-      // 輪郭線を抽出（エッジ検出）
-      const outline = new Uint8ClampedArray(data.length);
-      const lineWidth = 3; // 線の太さ
+      // 輪郭線を3層抽出（エッジ検出）
+      const outlineOuter = new Uint8ClampedArray(data.length);
+      const outlineMiddle = new Uint8ClampedArray(data.length);
+      const outlineInner = new Uint8ClampedArray(data.length);
+      const lineWidths = [5, 3, 1]; // 外側、中央、内側の太さ
 
-      for (let y = lineWidth; y < h - lineWidth; y++) {
-        for (let x = lineWidth; x < w - lineWidth; x++) {
-          const i = (y * w + x) * 4;
+      // 3層の輪郭線を作成
+      lineWidths.forEach((lineWidth, index) => {
+        const targetOutline = index === 0 ? outlineOuter : index === 1 ? outlineMiddle : outlineInner;
 
-          // 現在のピクセルが「人（明るい）」かどうか
-          const current = data[i] > 128;
+        for (let y = lineWidth; y < h - lineWidth; y++) {
+          for (let x = lineWidth; x < w - lineWidth; x++) {
+            const i = (y * w + x) * 4;
 
-          if (current) {
-            // 周囲をチェック（線の太さ分）
-            let isBoundary = false;
-            for (let dy = -lineWidth; dy <= lineWidth; dy++) {
-              for (let dx = -lineWidth; dx <= lineWidth; dx++) {
-                const ni = ((y + dy) * w + (x + dx)) * 4;
-                if (data[ni] <= 128) {
-                  isBoundary = true;
-                  break;
+            // 現在のピクセルが「人（明るい）」かどうか
+            const current = data[i] > 128;
+
+            if (current) {
+              // 周囲をチェック（線の太さ分）
+              let isBoundary = false;
+              for (let dy = -lineWidth; dy <= lineWidth; dy++) {
+                for (let dx = -lineWidth; dx <= lineWidth; dx++) {
+                  const ni = ((y + dy) * w + (x + dx)) * 4;
+                  if (data[ni] <= 128) {
+                    isBoundary = true;
+                    break;
+                  }
                 }
+                if (isBoundary) break;
               }
-              if (isBoundary) break;
-            }
 
-            // 境界なら白で描画
-            if (isBoundary) {
-              outline[i] = 255;
-              outline[i + 1] = 255;
-              outline[i + 2] = 255;
-              outline[i + 3] = 255;
+              // 境界なら白で描画
+              if (isBoundary) {
+                targetOutline[i] = 255;
+                targetOutline[i + 1] = 255;
+                targetOutline[i + 2] = 255;
+                targetOutline[i + 3] = 255;
+              }
             }
           }
         }
-      }
+      });
 
-      // ステップ8: 輪郭線データを保存
-      outlineData = outline;
+      // 表示用は中央の輪郭線を使用
+      const outline = outlineMiddle;
+
+      // ステップ8: 輪郭線データを保存（3層）
+      outlineDataOuter = outlineOuter;
+      outlineDataMiddle = outlineMiddle;
+      outlineDataInner = outlineInner;
       outlineWidth = w;
       outlineHeight = h;
 
@@ -291,19 +305,19 @@ const App: React.FC = () => {
 
       // 複数の星を処理
       stars.forEach((star) => {
-        // ステップ9: 輪郭線との衝突判定
+        // ステップ9: 輪郭線との衝突判定（3層チェック）
         let isColliding = false;
 
-        if (outlineData && outlineWidth > 0 && outlineHeight > 0) {
+        if (outlineDataOuter && outlineDataMiddle && outlineDataInner && outlineWidth > 0 && outlineHeight > 0) {
           // 星の座標を輪郭線データの座標に変換
           const outlineX = Math.floor((star.x / canvas.width) * outlineWidth);
           const outlineY = Math.floor((star.y / canvas.height) * outlineHeight);
 
           // 範囲チェック
           if (outlineX >= 0 && outlineX < outlineWidth && outlineY >= 0 && outlineY < outlineHeight) {
-            // その位置が輪郭線かどうかチェック
             const index = (outlineY * outlineWidth + outlineX) * 4;
-            isColliding = outlineData[index] > 0; // 輪郭線は白（255）
+            // 3層のいずれかに触れたら衝突
+            isColliding = outlineDataOuter[index] > 0 || outlineDataMiddle[index] > 0 || outlineDataInner[index] > 0;
           }
         }
 
