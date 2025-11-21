@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Object Fall Silhouette
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+MediaPipe を使用した人体輪郭抽出とインタラクティブな落下オブジェクトのシステム。カメラ映像から人の輪郭を抽出し、落下する星との衝突判定を行うインタラクティブ展示です。
 
-Currently, two official plugins are available:
+## 機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- MediaPipe Selfie Segmentation による人体輪郭抽出
+- リアルタイムの衝突判定（3 層の輪郭線検出）
+- 色相環に沿った 12 色のカラーサイクル
+- 衝突時のサイズ変化と跳ね返りアニメーション
+- 星の回転エフェクト
 
-## React Compiler
+## 必要な環境
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js（推奨: v18 以上）
+- npm または yarn
+- Web カメラ
 
-## Expanding the ESLint configuration
+## ローカルでの立ち上げ方法
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. リポジトリのクローン
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone https://github.com/takumi-maki/object-fall-silhouette.git
+cd object-fall-silhouette
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. 必要なライブラリのインストール
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+### 3. 開発サーバーの起動
+
+```bash
+npm run dev
+```
+
+ブラウザで `http://localhost:5173` にアクセスしてください。
+
+### 4. カメラの許可
+
+初回アクセス時にカメラの使用許可を求められるので、「許可」を選択してください。
+
+## その他のコマンド
+
+```bash
+# ビルド（本番環境用）
+npm run build
+
+# ビルドしたファイルのプレビュー
+npm run preview
+
+# ESLintによるコードチェック
+npm run lint
+```
+
+## 使用技術
+
+- React 19
+- TypeScript
+- Vite
+- MediaPipe Selfie Segmentation
+- Canvas API
+
+## ライセンス
+
+MIT
