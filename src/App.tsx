@@ -69,8 +69,8 @@ const App: React.FC = () => {
     const STAR_COUNT = 100; // 200 → 100 に減らす
 
     // 重力定数
-    const GRAVITY = 0.2; // 重力加速度（0.3 → 0.2 に減速）
-    const BOUNCE_VELOCITY = -8; // 跳ね返り時の初速度（-10 → -8 に減速）
+    const GRAVITY = 0.15; // 重力加速度（0.2 → 0.15 にさらに減速）
+    const BOUNCE_VELOCITY = -6; // 跳ね返り時の初速度（-8 → -6 に減速）
 
     // 色相環に沿った色の配列（12色）
     const colorCycle = [
@@ -329,7 +329,7 @@ const App: React.FC = () => {
           // 色相環に沿って次の色に変更
           star.color = getNextColor(star.color);
           // サイズを小さくする（最小10px）
-          star.size = Math.max(star.size - 3, 10);
+          star.size = Math.max(star.size - 1, 10);
         }
 
         // 重力を適用
@@ -377,6 +377,7 @@ const App: React.FC = () => {
         ctx.translate(star.x, star.y);
         ctx.rotate(star.rotation); // 回転を適用
         ctx.scale(star.size / 20, star.size / 20); // 基準サイズ20pxからスケール
+        ctx.globalAlpha = 0.8; // 透明度80%
         ctx.fillStyle = star.color;
         ctx.fill(starPath);
         ctx.restore();
